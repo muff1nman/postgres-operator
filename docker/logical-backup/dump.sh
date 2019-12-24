@@ -10,12 +10,18 @@ IFS=$'\n\t'
 set -o xtrace
 
 ALL_DB_SIZE_QUERY="select sum(pg_database_size(datname)::numeric) from pg_database;"
+LIST_DB_QUERY='SELECT datname FROM pg_database WHERE datistemplate = false;'
 PG_BIN=$PG_DIR/$PG_VERSION/bin
 DUMP_SIZE_COEFF=5
+VERSION=2
 
 TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 K8S_API_URL=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1
 CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+function list_databases {
+    "$PG_BIN"/psql -tqAc "${LIST_DB_QUERY}"
+}
 
 function estimate_size {
     "$PG_BIN"/psql -tqAc "${ALL_DB_SIZE_QUERY}"
@@ -26,17 +32,29 @@ function dump {
     "$PG_BIN"/pg_dumpall
 }
 
+function dumpglobals {
+    # settings are taken from the environment
+    "$PG_BIN"/pg_dumpall --globals-only
+}
+
+function dumpdb {
+    declare -r DB="$1"
+    # settings are taken from the environment
+    "$PG_BIN"/pg_dump -Fc $DB
+}
+
 function compress {
     pigz
 }
 
 function aws_upload {
-    declare -r EXPECTED_SIZE="$1"
+    declare -r EXPECTED_SIZE="$2"
+    declare -r FILENAME="$1"
 
     # mimic bucket setup from Spilo
     # to keep logical backups at the same path as WAL
     # NB: $LOGICAL_BACKUP_S3_BUCKET_SCOPE_SUFFIX already contains the leading "/" when set by the Postgres Operator
-    PATH_TO_BACKUP=s3://$LOGICAL_BACKUP_S3_BUCKET"/spilo/"$SCOPE$LOGICAL_BACKUP_S3_BUCKET_SCOPE_SUFFIX"/logical_backups/"$(date +%s).sql.gz
+    PATH_TO_BACKUP=s3://$LOGICAL_BACKUP_S3_BUCKET"/spilo/"$SCOPE$LOGICAL_BACKUP_S3_BUCKET_SCOPE_SUFFIX"/logical_backups/"$FILENAME
 
     args=()
 
@@ -93,4 +111,13 @@ for search in "${search_strategy[@]}"; do
 
 done
 
-dump | compress | aws_upload $(($(estimate_size) / DUMP_SIZE_COEFF))
+declare -r DATE=$(date +%s)
+
+if [[ $VERSION == "2" ]]; then
+	dumpglobals | compress | aws_upload $DATE.globals.sql.gz
+	for db in "${list_databases[@]}"; do
+		dumpdb $db | aws_upload $DATE.$db.dump
+	done
+else
+	dump | compress | aws_upload $DATE.sql.gz $(($(estimate_size) / DUMP_SIZE_COEFF)) 
+fi
