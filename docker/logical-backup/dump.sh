@@ -114,9 +114,9 @@ done
 declare -r DATE=$(date +%s)
 
 if [[ $VERSION == "2" ]]; then
-	dumpglobals | compress | aws_upload $DATE.globals.sql.gz
+	dumpglobals | compress | aws_upload $DATE.globals.sql.gz ""
 	for db in "${list_databases[@]}"; do
-		dumpdb $db | aws_upload $DATE.$db.dump
+		dumpdb $db | aws_upload $DATE.$db.dump ""
 	done
 else
 	dump | compress | aws_upload $DATE.sql.gz $(($(estimate_size) / DUMP_SIZE_COEFF)) 
