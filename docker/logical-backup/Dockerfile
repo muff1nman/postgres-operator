@@ -27,6 +27,7 @@ RUN apt-get update     \
     && rm -rf /var/lib/apt/lists/*
 
 COPY dump.sh ./
+COPY restore.sh ./
 
 ENV PG_DIR=/usr/lib/postgresql/
 
