@@ -115,7 +115,7 @@ declare -r DATE=$(date +%s)
 
 if [[ $VERSION == "2" ]]; then
 	dumpglobals | compress | aws_upload $DATE.globals.sql.gz ""
-	for db in "${list_databases[@]}"; do
+	list_databases | while read -r db; do
 		dumpdb $db | aws_upload $DATE.$db.dump ""
 	done
 else
