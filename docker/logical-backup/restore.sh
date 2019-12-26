@@ -22,7 +22,7 @@ if [[ -f "/etc/backup/envvars" ]]; then
 fi
 
 function restoredb {
-    "$PG_BIN"/pg_restore -d $PGDATABASE --no-owner --single-transaction
+    "$PG_BIN"/pg_restore -d $PGDATABASE -n public --no-owner --single-transaction
 }
 
 function decrypt {
