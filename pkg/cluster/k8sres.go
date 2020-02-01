@@ -928,8 +928,8 @@ func (c *Cluster) generateStatefulSet(spec *acidv1.PostgresSpec) (*appsv1.Statef
 		mountShmVolumeNeeded(c.OpConfig, spec),
 		c.OpConfig.EnablePodAntiAffinity,
 		c.OpConfig.PodAntiAffinityTopologyKey,
-		addSecretMount,
-		addSecretMountPath); err != nil {
+		"",
+		""); err != nil {
 		return nil, fmt.Errorf("could not generate pod template: %v", err)
 	}
 
