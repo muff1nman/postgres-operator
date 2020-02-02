@@ -901,13 +901,13 @@ func (c *Cluster) generateStatefulSet(spec *acidv1.PostgresSpec) (*appsv1.Statef
 
 	annotations := c.generatePodAnnotations(spec)
 
-	addSecretMount := c.OpConfig.AdditionalSecretMount
-	addSecretMountPath := c.OpConfig.AdditionalSecretMountPath
+	addSecretMount := c.Postgresql.Spec.AdditionalSecretMount
+	addSecretMountPath := c.Postgresql.Spec.AdditionalSecretMountPath
 	if addSecretMount == "" {
-		addSecretMount = c.Postgresql.Spec.AdditionalSecretMount
+		addSecretMount =  c.OpConfig.AdditionalSecretMount
 	}
 	if addSecretMountPath == "" {
-		addSecretMountPath = c.Postgresql.Spec.AdditionalSecretMountPath
+		addSecretMountPath = c.OpConfig.AdditionalSecretMountPath
 	}
 
 	// generate pod template for the statefulset, based on the spilo container and sidecars
@@ -1512,13 +1512,13 @@ func (c *Cluster) generateLogicalBackupJob() (*batchv1beta1.CronJob, error) {
 
 	annotations := c.generatePodAnnotations(&c.Spec)
 
-	addSecretMount := c.OpConfig.AdditionalSecretMount
-	addSecretMountPath := c.OpConfig.AdditionalSecretMountPath
+	addSecretMount := c.Postgresql.Spec.AdditionalSecretMount
+	addSecretMountPath := c.Postgresql.Spec.AdditionalSecretMountPath
 	if addSecretMount == "" {
-		addSecretMount = c.Postgresql.Spec.AdditionalSecretMount
+		addSecretMount =  c.OpConfig.AdditionalSecretMount
 	}
 	if addSecretMountPath == "" {
-		addSecretMountPath = c.Postgresql.Spec.AdditionalSecretMountPath
+		addSecretMountPath = c.OpConfig.AdditionalSecretMountPath
 	}
 
 	// re-use the method that generates DB pod templates
