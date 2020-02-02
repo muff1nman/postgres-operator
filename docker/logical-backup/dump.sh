@@ -19,6 +19,10 @@ TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 K8S_API_URL=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1
 CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
+if [[ -f "/etc/backup/envvars" ]]; then
+  source "/etc/backup/envvars"
+fi
+
 function list_databases {
     "$PG_BIN"/psql -tqAc "${LIST_DB_QUERY}"
 }
@@ -40,11 +44,19 @@ function dumpglobals {
 function dumpdb {
     declare -r DB="$1"
     # settings are taken from the environment
-    "$PG_BIN"/pg_dump -Fc $DB
+    "$PG_BIN"/pg_dump -Fc "$DB"
 }
 
 function compress {
     pigz
+}
+
+function encrypt {
+  if [[ -n "$SALTLICK_PUBLIC_KEY" ]]; then
+    saltlick encrypt -p "$SALTLICK_PUBLIC_KEY"
+  else
+    cat
+  fi
 }
 
 function aws_upload {
@@ -63,6 +75,16 @@ function aws_upload {
     [[ ! "$LOGICAL_BACKUP_S3_SSE" == "" ]] && args+=("--sse=$LOGICAL_BACKUP_S3_SSE")
 
     aws s3 cp - "$PATH_TO_BACKUP" "${args[@]//\'/}" --debug
+}
+
+function checkin {
+  if [[ -n "$HEALTHCHECK_HOST" ]]; then
+    ping_url=$(curl -f --header "X-Api-Key: ${HEALTHCHECK_APIKEY}" \
+               -XPOST \
+               --data "@${HEALTHCHECK_CONFIG}" \
+               "https://${HEALTHCHECK_HOST}/api/v1/checks/" | jq -r .ping_url -)
+    curl --retry 3 -f "$ping_url"
+  fi
 }
 
 function get_pods {
@@ -114,10 +136,11 @@ done
 declare -r DATE=$(date +%s)
 
 if [[ $VERSION == "2" ]]; then
-	dumpglobals | compress | aws_upload $DATE.globals.sql.gz ""
+	dumpglobals | compress | aws_upload "$DATE.globals.sql.gz" ""
 	list_databases | while read -r db; do
-		dumpdb $db | aws_upload $DATE.$db.dump ""
+		dumpdb "$db" | aws_upload "$DATE.$db.dump" ""
 	done
 else
-	dump | compress | aws_upload $DATE.sql.gz $(($(estimate_size) / DUMP_SIZE_COEFF)) 
+	dump | compress | encrypt | aws_upload "$DATE.sql.gz" $(($(estimate_size) / DUMP_SIZE_COEFF))
 fi
+checkin

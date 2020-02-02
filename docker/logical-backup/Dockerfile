@@ -1,10 +1,11 @@
 FROM ubuntu:18.04
 LABEL maintainer="Team ACID @ Zalando <team-acid@zalando.de>"
-
+ENV PATH="/root/.cargo/bin:$PATH"
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update     \
     && apt-get install --no-install-recommends -y \
         apt-utils \
+        build-essential \
         ca-certificates \
         lsb-release \
         pigz \
@@ -13,6 +14,10 @@ RUN apt-get update     \
         curl \
         jq \
         gnupg \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > /usr/local/share/rustup.sh \
+    && sh /usr/local/share/rustup.sh -y --no-modify-path \
+    && cargo install saltlick-cli \
+    && rm -rf /root/.cargo/registry \
     && pip3 install --no-cache-dir awscli --upgrade \
     && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && cat /etc/apt/sources.list.d/pgdg.list \

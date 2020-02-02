@@ -15,8 +15,20 @@ TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 K8S_API_URL=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1
 CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
+if [[ -f "/etc/backup/envvars" ]]; then
+  source "/etc/backup/envvars"
+fi
+
 function restoredb {
     "$PG_BIN"/pg_restore -d $PGDATABASE --no-owner --single-transaction
+}
+
+function decrypt {
+  if [[ -n "$SALTLICK_PRIVATE_KEY" ]]; then
+    saltlick encrypt -s "$SALTLICK_PRIVATE_KEY" -p "$SALTLICK_PUBLIC_KEY"
+  else
+    cat
+  fi
 }
 
 function aws_download {
@@ -72,7 +84,7 @@ for search in "${search_strategy[@]}"; do
 done
 
 if [[ $VERSION == "2" ]]; then
-	aws_download $DATE.$PGDATABASE.dump | restoredb
+	aws_download $DATE.$PGDATABASE.dump | decrypt | restoredb
 else
 	echo I dont know how to restore with this format
 	exit 1
