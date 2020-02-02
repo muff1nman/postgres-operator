@@ -138,11 +138,11 @@ done
 declare -r DATE=$(date +%s)
 
 if [[ $VERSION == "2" ]]; then
-	dumpglobals | compress | aws_upload "$DATE.globals.sql.gz" ""
+	dumpglobals | compress | encrypt | aws_upload "$DATE.globals.sql.gz" ""
 	list_databases | while read -r db; do
-		dumpdb "$db" | aws_upload "$DATE.$db.dump" ""
+		dumpdb "$db" | encrypt | aws_upload "$DATE.$db.dump" ""
 	done
 else
-	dump | compress | encrypt | aws_upload "$DATE.sql.gz" $(($(estimate_size) / DUMP_SIZE_COEFF))
+	dump | compress | aws_upload "$DATE.sql.gz" $(($(estimate_size) / DUMP_SIZE_COEFF))
 fi
 checkin
