@@ -20,7 +20,9 @@ K8S_API_URL=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1
 CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
 if [[ -f "/etc/backup/envvars" ]]; then
+  set -a
   source "/etc/backup/envvars"
+  set +a
 fi
 
 function list_databases {
