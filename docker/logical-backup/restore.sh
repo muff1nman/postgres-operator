@@ -27,7 +27,7 @@ function restoredb {
 
 function decrypt {
   if [[ -n "$SALTLICK_PRIVATE_KEY" ]]; then
-    saltlick encrypt -s "$SALTLICK_PRIVATE_KEY" -p "$SALTLICK_PUBLIC_KEY"
+    saltlick decrypt -s "$SALTLICK_PRIVATE_KEY" -p "$SALTLICK_PUBLIC_KEY"
   else
     cat
   fi
